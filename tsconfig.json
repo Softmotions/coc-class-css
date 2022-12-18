@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es2018",
+    "lib": ["ESNext"],
+    "module": "commonjs",
+    "outDir": "lib",
+    "strict": true,
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "esModuleInterop": true
+  },
+  "include": ["src"]
+}

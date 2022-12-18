@@ -1,0 +1,75 @@
+{
+  "name": "coc-class-css",
+  "version": "1.0.0",
+  "description": "CSS class completions in html markup everywhere",
+  "main": "lib/index.js",
+  "repository": "https://github.com/Softmotions/coc-class-css.git",
+  "author": "Anton Adamansky <adamansky@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "keywords": [
+    "coc.nvim",
+    "vim",
+    "nvim",
+    "neovim",
+    "css",
+    "html"
+  ],
+  "engines": {
+    "coc": "^0.0.80"
+  },
+  "activationEvents": [
+    "*"
+  ],
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "coc-class-css configuration",
+      "properties": {
+        "coc-class-css.enabled": {
+          "type": "boolean",
+          "scope": "application",
+          "default": true,
+          "description": "Enable coc-class-css extension"
+        },
+        "coc-class-css.enabledLanguages": {
+          "type": "array",
+          "scope": "application",
+          "description": "List of languages where css class completion enabled",
+          "default": [
+            "html"
+          ]
+        },
+        "coc-class-css.cssRoots": {
+          "type": "array",
+          "scope": "resource",
+          "description": "List of local css/scss files for class suggestions.",
+          "default": [
+            "index.css"
+          ]
+        }
+      }
+    }
+  },
+  "scripts": {
+    "lint": "eslint src --ext ts",
+    "clean": "rimraf lib",
+    "watch": "node esbuild.js --watch",
+    "build": "node esbuild.js",
+    "prepare": "node esbuild.js"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^5.46.1",
+    "@typescript-eslint/parser": "^5.46.1",
+    "coc.nvim": "^0.0.83-next.9",
+    "esbuild": "^0.16.9",
+    "eslint": "^8.30.0",
+    "find-up": "^6.3.0",
+    "node-fetch": "^3.3.0",
+    "prettier": "^2.8.1",
+    "rimraf": "^3.0.2",
+    "tslib": "^2.4.1",
+    "typescript": "^4.9.4"
+  }
+}
