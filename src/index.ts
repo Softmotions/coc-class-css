@@ -8,7 +8,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
     return;
   }
 
-  const enabledLanguages = cfg.get<string[]>('languages', ['html']);
+  const enabledLanguages = cfg.get<string[]>('languages', ['html', 'svelte', 'vue']);
   context.logger.info(`Activating ${ExtensionName} for ${enabledLanguages.join(',')}`);
   const provider = new CSSClassCompletionProvider(context);
 
@@ -19,3 +19,6 @@ export async function activate(context: ExtensionContext): Promise<void> {
 }
 
 export function deactivate() {}
+
+
+

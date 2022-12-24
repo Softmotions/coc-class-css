@@ -9,6 +9,10 @@ export class TrieNode<T> {
     this.data = data;
   }
 
+  clear() {
+    this.children.clear();
+  }
+
   wordAdd(word: string, data: T) {
     let n = this as TrieNode<T>;
     for (let ch of word) {
@@ -48,7 +52,7 @@ export class TrieNode<T> {
     return this.wordRemoveImpl(this, word);
   }
 
-  *dataTraverse(): Generator<T, void, boolean> {
+  *dataTraverse(): Generator<T, void> {
     if (this.data !== undefined) {
       yield this.data;
     }
@@ -57,7 +61,7 @@ export class TrieNode<T> {
     }
   }
 
-  *prefixFind(prefix: string): Generator<T, void, boolean> {
+  *prefixFind(prefix: string): Generator<T, void> {
     let n = this as TrieNode<T>;
     for (let ch of prefix) {
       const nn = n.children.get(ch);

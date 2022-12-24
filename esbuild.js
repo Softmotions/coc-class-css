@@ -1,17 +1,19 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 async function start(watch) {
-  await require('esbuild').build({
-    entryPoints: ['src/index.ts'],
-    bundle: true,
-    watch,
-    minify: process.env.NODE_ENV === 'production',
-    sourcemap: process.env.NODE_ENV === 'development',
-    mainFields: ['module', 'main'],
-    external: ['coc.nvim'],
-    platform: 'node',
-    target: 'node18',
-    outfile: 'lib/index.js',
-  });
+  return Promise.all([
+    require('esbuild').build({
+      entryPoints: ['src/index.ts'],
+      bundle: true,
+      watch,
+      minify: process.env.NODE_ENV === 'production',
+      sourcemap: process.env.NODE_ENV === 'development',
+      mainFields: ['module', 'main'],
+      external: ['coc.nvim'],
+      platform: 'node',
+      target: 'node18',
+      outfile: 'lib/index.js',
+    }),
+  ]);
 }
 
 let watch = false;

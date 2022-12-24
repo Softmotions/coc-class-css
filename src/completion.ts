@@ -1,7 +1,11 @@
+import fs from 'node:fs/promises';
+import fspath, { dirname } from 'node:path';
+
 import {
   CancellationToken,
   CompletionContext,
   CompletionItem,
+  CompletionItemKind,
   CompletionItemProvider,
   CompletionList,
   Disposable,
@@ -12,23 +16,36 @@ import {
   ProviderResult,
   TextDocument,
   Uri,
-  workspace
+  workspace,
 } from 'coc.nvim';
 
 import { findUp } from 'find-up';
 import { ExtensionName } from './constants';
 import { TrieNode } from './trie';
 
-import fs from 'fs';
-import { access } from 'node:fs/promises';
-import path, { dirname } from 'node:path';
+import { nextTick } from 'node:process';
+import postcss, { Result } from 'postcss';
+import postcssAtRulesVars from 'postcss-at-rules-variables';
+import postcssImport from 'postcss-import';
+import dataUrl from 'postcss-import/lib/data-url.js';
+import loadContent from 'postcss-import/lib/load-content.js';
+import postcssNested from 'postcss-nested';
+import postcssSafeParser from 'postcss-safe-parser';
+import postcssSimpleVars from 'postcss-simple-vars';
 
 /**
  * CSS class node
  */
 interface CLSlot {
   token: string; /// CSS class
-  file: string; /// Owner file
+  pathRelative: string;
+}
+
+interface Config {
+  rootDir: string;
+  cssRoots: Set<string>;
+  classAttributes: Set<string>;
+  maxResults: number;
 }
 
 export class CSSClassCompletionProvider implements CompletionItemProvider, Disposable {
@@ -38,110 +55,266 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
 
   readonly trie = new TrieNode<CLSlot>();
 
-  readonly watched = new Map<string, Disposable>();
+  readonly watched = new Map<string, Disposable>(); /// Watched file full path => to reset cache
 
-  rootDir: string | undefined;
+  readonly changed = new Set<string>();
+
+  readonly roots = new Set<string>();
+
+  cfg!: Config;
 
   constructor(context: ExtensionContext) {
     this.context = context;
     this.log = context.logger;
-    context.workspaceState;
   }
 
-  dispose() {}
+  clearState() {
+    this.roots.clear();
+    this.trie.clear();
+    this.changed.clear();
+    this.watched.forEach((v) => v.dispose());
+    this.watched.clear();
+  }
+
+  dispose() {
+    this.clearState();
+  }
+
+  async jsonFileGet(path: string): Promise<any> {
+    try {
+      const buf = await fs.readFile(path);
+      return JSON.parse(buf.toString('utf8')) || {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  async configure(uri: Uri): Promise<Config> {
+    const cfg: Config = {
+      rootDir: workspace.root,
+      cssRoots: new Set(),
+      classAttributes: new Set(),
+      maxResults: 0,
+    };
+
+    const cwd = dirname(uri.path);
+    let val = await findUp('package.json', { stopAt: workspace.root, cwd });
+    if (val) {
+      val = fspath.dirname(val);
+    }
+    cfg.rootDir = fspath.resolve(val || workspace.root);
+
+    val = await findUp(`.${ExtensionName}.json`, { stopAt: workspace.root, cwd });
+    if (val) {
+      const json = await this.jsonFileGet(val);
+      (json[`${ExtensionName}.cssRoots`] || []).forEach((r) => cfg.cssRoots.add(fspath.resolve(cfg.rootDir, r)));
+      (json[`${ExtensionName}.classAttributes`] || []).forEach((r) => cfg.classAttributes.add(r));
+      cfg.maxResults = parseInt(json[`${ExtensionName}.maxResults`]) || 0;
+    }
+
+    if (cfg.cssRoots.size == 0) {
+      workspace
+        .getConfiguration(ExtensionName, uri.toString())
+        .get<string[]>('cssRoots', [])
+        .forEach((r) => cfg.cssRoots.add(fspath.resolve(cfg.rootDir, r)));
+    }
+
+    if (cfg.maxResults < 1) {
+      cfg.maxResults = workspace.getConfiguration(ExtensionName, uri.toString()).get<number>('maxResults', 10);
+    }
+
+    workspace
+      .getConfiguration(ExtensionName, uri.toString())
+      .get<string[]>('classAttributes', [])
+      .forEach((r) => cfg.classAttributes.add(r));
+
+    workspace
+      .getConfiguration('tailwindCSS', uri.toString())
+      .get<string[]>('classAttributes', [])
+      .forEach((r) => cfg.classAttributes.add(r));
+
+    if (cfg.classAttributes.size == 0) {
+      cfg.classAttributes.add('class');
+    }
+
+    if (cfg.cssRoots.size == 0) {
+      cfg.cssRoots.add(fspath.resolve(cfg.rootDir, 'index.css'));
+    }
+
+    return cfg;
+  }
 
   async init(doc: TextDocument): Promise<boolean> {
-    if (this.rootDir) {
+    if (this.cfg) {
       return true;
     }
     const uri = Uri.parse(doc.uri);
     if (!workspace.root || uri.scheme !== 'file') {
       return false;
     }
-    const cwd = dirname(uri.fsPath);
-    this.rootDir = await findUp('package.json', {
-      stopAt: workspace.root,
-      cwd,
-    });
-    if (this.rootDir) {
-      this.rootDir = path.dirname(this.rootDir);
-    }
-    this.rootDir = path.resolve(this.rootDir || workspace.root);
-    const roots = workspace
-      .getConfiguration(ExtensionName, doc.uri.toString())
-      .get<string[]>('cssRoots', ['index.css']);
-
-    await this.updateUnresolvedFiles(roots);
-
+    this.cfg = await this.configure(uri);
+    await this.rootsImport([...this.cfg.cssRoots]);
     return true;
   }
 
-  resolvePath(p: string): string | undefined {
-    if (!this.rootDir) {
-      return undefined;
+  pathResolve(p: string): string | undefined {
+    const { rootDir } = this.cfg;
+    if (!fspath.isAbsolute(p)) {
+      p = fspath.join(rootDir, p);
     }
-    if (!path.isAbsolute(p)) {
-      p = path.join(this.rootDir, p);
-    }
-    let result = path.relative(this.rootDir, p);
+    const result = fspath.relative(rootDir, p);
     if (result != '') {
       p = result;
     }
-    if (path.isAbsolute(p)) {
+    if (fspath.isAbsolute(p)) {
       return undefined;
     }
     return p;
   }
 
-  async resolveFiles(paths: string[]): Promise<string[]> {
+  async rootsImport(paths: string[]) {
     return Promise.all(
       paths
-        .map((v) => this.resolvePath(v))
+        .map((v) => this.pathResolve(v))
         .filter((v) => v !== undefined)
-        .map(async (v) =>
-          access(path.join(this.rootDir!, v!), fs.constants.R_OK)
-            .then(() => v)
-            .catch(() => undefined)
-        )
-    ).then((v) => v.filter((v) => v !== undefined) as string[]);
+        .map((v) => {
+          const path = fspath.join(this.cfg.rootDir, v!);
+          this.roots.add(path);
+          return this.updateRoot(path);
+        })
+    );
   }
 
-  async updateUnresolvedFiles(paths: string[]) {
-    return this.updateResolvedFiles(await this.resolveFiles(paths));
+  onFilesChanged() {
+    const changed = [...this.changed];
+    this.updateRoots().finally(() => {
+      changed.forEach((c) => this.changed.delete(c));
+      if (this.changed.size > 0) {
+        nextTick(this.onFilesChanged);
+      }
+    });
   }
 
-  async updateResolvedFiles(paths: string[]) {
-    // TODO:
-    this.log.info('Update resolved ', paths);
+  onFileChangedRaw(uri: Uri) {
+    const path = uri.path;
+    if (this.changed.has(path)) {
+      return;
+    }
+    if (this.changed.size == 0) {
+      this.changed.add(path);
+      // Debounce
+      setTimeout(() => {
+        this.onFilesChanged();
+      }, 1000);
+    } else {
+      this.changed.add(path);
+    }
+  }
+
+  watchFile(path: string, listener: (uri: Uri) => void) {
+    if (this.watched.has(path)) {
+      return;
+    }
+    const watcher = workspace.createFileSystemWatcher(path);
+    watcher.onDidChange(listener);
+    watcher.onDidCreate(listener);
+    watcher.onDidDelete(listener);
+    this.watched.set(path, watcher);
+  }
+
+  fileLoad(path: string) {
+    if (dataUrl.isValid()) {
+      return loadContent(path);
+    } else {
+      return loadContent(path).finally(() => {
+        this.watchFile(path, this.onFileChangedRaw.bind(this));
+      });
+    }
+  }
+
+  async updateRoots() {
+    this.trie.clear();
+    return Promise.all([...this.roots].map((p) => this.updateRoot(p)));
+  }
+
+  async processCSSResult(result: Result, pathRelative: string) {
+    const selectors = new Set<string>();
+    result.root.walk((n) => {
+      if (n.type === 'rule' && n.selector) {
+        n.selectors
+          .filter((s) => s[0] === '.')
+          .forEach((s) => {
+            const idx = s.indexOf(' ');
+            if (idx !== -1) {
+              selectors.add(s.substring(1, idx));
+            } else {
+              selectors.add(s.substring(1));
+            }
+          });
+      }
+    });
+    selectors.forEach((s) => {
+      this.trie.wordAdd(s, { token: s, pathRelative });
+    });
+  }
+
+  async updateRoot(path: string) {
+    const { rootDir } = this.cfg;
+    const pathRelative = fspath.relative(rootDir, path);
+    this.log.info('Update file: ' + pathRelative);
+    const css = await this.fileLoad(path).catch((e) => {
+      this.log.warn(`Failed to read: ${path} `, e);
+      return undefined;
+    });
+    if (css == undefined) {
+      return;
+    }
+    return postcss([
+      postcssSimpleVars(),
+      postcssAtRulesVars(),
+      postcssNested(),
+      postcssImport({ root: rootDir, load: this.fileLoad.bind(this) }),
+    ])
+      .process(css, { from: pathRelative, parser: postcssSafeParser })
+      .then((res) => this.processCSSResult(res, pathRelative))
+      .catch((e) => {
+        this.log.warn(`Failed to process: ${path}`, e);
+      });
   }
 
   provideCompletionItems(
     document: LinesTextDocument,
     position: Position,
-    token: CancellationToken,
-    context?: CompletionContext | undefined
+    _token: CancellationToken,
+    _context?: CompletionContext | undefined
   ): ProviderResult<CompletionItem[] | CompletionList> {
     return new Promise(async (resolve) => {
+      const results: CompletionItem[] = [];
       if (!(await this.init(document))) {
-        return resolve([]);
+        return resolve(results);
       }
+
       const line = document.lineAt(position);
       if (line.isEmptyOrWhitespace) {
-        return resolve([]);
+        return resolve(results);
       }
+
       const text = line.text;
       let sidx = position.character - 1;
       for (; sidx >= 0 && /[a-zA-Z0-9-_]/.test(text[sidx]); --sidx);
       ++sidx;
+
       const word = text.substring(sidx, position.character);
       if (word.length == 0) {
-        return resolve([]);
+        return resolve(results);
+      }
+      this.log.info('W=' + word);
+
+      for (const s of this.trie.prefixFind(word)) {
+        results.push({ label: s.token, kind: CompletionItemKind.Enum, detail: s.pathRelative });
       }
 
-      //workspace.onDidChangeWorkspaceFolders
-      //this.log.info('W=\'' + word + '\'');
-
-      return resolve([]);
+      return resolve(results);
     });
   }
 }
