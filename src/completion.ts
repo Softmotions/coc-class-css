@@ -17,7 +17,7 @@ import {
   ProviderResult,
   TextDocument,
   Uri,
-  workspace,
+  workspace
 } from 'coc.nvim';
 
 import { findUp } from 'find-up';
