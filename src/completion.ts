@@ -249,14 +249,25 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
             pathRelative = pathRelative.substring('node_modules/'.length);
           }
         }
+
+        const lines = n
+          .toString()
+          .trim()
+          .split('\n')
+          .filter((l) => !/^\s*$/.test(l));
+        // hack:
+        if (lines.length > 1) {
+          lines[0] = lines[0].trim();
+          lines[lines.length - 1] = lines[lines.length - 1].trim();
+        }
         n.selectors
           .filter((s) => s[0] === '.')
           .forEach((s) => {
             const idx = s.indexOf(' ');
             if (idx !== -1) {
-              selectors.add({ token: s.substring(1, idx), pathRelative, source: n.toString() });
+              selectors.add({ token: s.substring(1, idx), pathRelative, source: lines.join('\n') });
             } else {
-              selectors.add({ token: s.substring(1), pathRelative, source: n.toString() });
+              selectors.add({ token: s.substring(1), pathRelative, source: lines.join('\n') });
             }
           });
       }
