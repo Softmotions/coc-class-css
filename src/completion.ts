@@ -121,7 +121,7 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     }
 
     if (cfg.maxResults < 1) {
-      cfg.maxResults = workspace.getConfiguration(ExtensionName, uri.toString()).get<number>('maxResults', 10);
+      cfg.maxResults = workspace.getConfiguration(ExtensionName, uri.toString()).get<number>('maxResults', 20);
     }
 
     workspace
@@ -318,7 +318,28 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
         return resolve(results);
       }
 
-      //this.log.info('Line=' + text.substring(0, sidx));
+      const attr = (function () {
+        let arr: string[] = [];
+        for (; sidx >= 0; --sidx) {
+          if (text[sidx] === "'" || text[sidx] === '"') {
+            --sidx;
+            for (; sidx >= 0 && /\s/.test(text[sidx]); --sidx);
+            if (sidx > 0 && text[sidx] === '=') {
+              --sidx;
+              for (; sidx >= 0 && /\s/.test(text[sidx]); --sidx);
+              for (; sidx >= 0 && /[a-zA-Z0-9-_]/.test(text[sidx]); --sidx) {
+                arr.unshift(text[sidx]);
+              }
+              break;
+            }
+          }
+        }
+        return arr.join('');
+      })();
+
+      if (attr === '' || !this.cfg.classAttributes.has(attr)) {
+        return resolve(results);
+      }
 
       for (const s of this.trie.prefixFind(word)) {
         results.push({

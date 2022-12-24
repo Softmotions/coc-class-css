@@ -58,6 +58,7 @@
     "build": "node esbuild.js",
     "prepare": "node esbuild.js"
   },
+
   "devDependencies": {
     "@types/node": "18.x",
     "@typescript-eslint/eslint-plugin": "^5.46.1",
