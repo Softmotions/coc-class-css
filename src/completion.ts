@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import fspath, { dirname } from 'node:path';
+import { nextTick } from 'node:process';
 
 import {
   CancellationToken,
@@ -20,10 +21,6 @@ import {
 } from 'coc.nvim';
 
 import { findUp } from 'find-up';
-import { ExtensionName } from './constants';
-import { TrieNode } from './trie';
-
-import { nextTick } from 'node:process';
 import postcss, { Result } from 'postcss';
 import postcssAtRulesVars from 'postcss-at-rules-variables';
 import postcssImport from 'postcss-import';
@@ -33,12 +30,16 @@ import postcssNested from 'postcss-nested';
 import postcssSafeParser from 'postcss-safe-parser';
 import postcssSimpleVars from 'postcss-simple-vars';
 
+import { ExtensionName } from './constants';
+import { TrieNode } from './trie';
+
 /**
  * CSS class node
  */
 interface CLSlot {
   token: string; /// CSS class
   pathRelative: string;
+  source: string;
 }
 
 interface Config {
@@ -53,13 +54,13 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
 
   readonly log: Logger;
 
-  readonly trie = new TrieNode<CLSlot>();
-
   readonly watched = new Map<string, Disposable>(); /// Watched file full path => to reset cache
 
   readonly changed = new Set<string>();
 
   readonly roots = new Set<string>();
+
+  trie = new TrieNode<CLSlot>();
 
   cfg!: Config;
 
@@ -211,11 +212,12 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     }
   }
 
-  watchFile(path: string, listener: (uri: Uri) => void) {
+  async watchFile(path: string, listener: (uri: Uri) => void) {
+    const relative = fspath.relative(workspace.root, path);
     if (this.watched.has(path)) {
       return;
     }
-    const watcher = workspace.createFileSystemWatcher(path);
+    const watcher = workspace.createFileSystemWatcher(relative);
     watcher.onDidChange(listener);
     watcher.onDidCreate(listener);
     watcher.onDidDelete(listener);
@@ -233,35 +235,41 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
   }
 
   async updateRoots() {
-    this.trie.clear();
     return Promise.all([...this.roots].map((p) => this.updateRoot(p)));
   }
 
-  async processCSSResult(result: Result, pathRelative: string) {
-    const selectors = new Set<string>();
+  async processCSSResult(result: Result, pathRelative: string, trie: TrieNode<CLSlot>) {
+    const selectors = new Set<CLSlot>();
     result.root.walk((n) => {
       if (n.type === 'rule' && n.selector) {
+        let file = n?.source?.input?.file;
+        if (file) {
+          pathRelative = fspath.relative(this.cfg.rootDir, file);
+          if (pathRelative.startsWith('node_modules/')) {
+            pathRelative = pathRelative.substring('node_modules/'.length);
+          }
+        }
         n.selectors
           .filter((s) => s[0] === '.')
           .forEach((s) => {
             const idx = s.indexOf(' ');
             if (idx !== -1) {
-              selectors.add(s.substring(1, idx));
+              selectors.add({ token: s.substring(1, idx), pathRelative, source: n.toString() });
             } else {
-              selectors.add(s.substring(1));
+              selectors.add({ token: s.substring(1), pathRelative, source: n.toString() });
             }
           });
       }
     });
     selectors.forEach((s) => {
-      this.trie.wordAdd(s, { token: s, pathRelative });
+      trie.wordAdd(s.token, s);
     });
   }
 
   async updateRoot(path: string) {
     const { rootDir } = this.cfg;
+    const trie = new TrieNode<CLSlot>();
     const pathRelative = fspath.relative(rootDir, path);
-    this.log.info('Update file: ' + pathRelative);
     const css = await this.fileLoad(path).catch((e) => {
       this.log.warn(`Failed to read: ${path} `, e);
       return undefined;
@@ -275,8 +283,9 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
       postcssNested(),
       postcssImport({ root: rootDir, load: this.fileLoad.bind(this) }),
     ])
-      .process(css, { from: pathRelative, parser: postcssSafeParser })
-      .then((res) => this.processCSSResult(res, pathRelative))
+      .process(css, { from: path, parser: postcssSafeParser })
+      .then((res) => this.processCSSResult(res, pathRelative, trie))
+      .then(() => (this.trie = trie))
       .catch((e) => {
         this.log.warn(`Failed to process: ${path}`, e);
       });
@@ -308,12 +317,23 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
       if (word.length == 0) {
         return resolve(results);
       }
-      this.log.info('W=' + word);
+
+      //this.log.info('Line=' + text.substring(0, sidx));
 
       for (const s of this.trie.prefixFind(word)) {
-        results.push({ label: s.token, kind: CompletionItemKind.Enum, detail: s.pathRelative });
+        results.push({
+          label: s.token,
+          kind: CompletionItemKind.Variable,
+          detail: s.pathRelative,
+          documentation: {
+            kind: 'markdown',
+            value: ['```css', s.source, '```'].join('\n'),
+          },
+        });
+        if (results.length >= this.cfg.maxResults) {
+          break;
+        }
       }
-
       return resolve(results);
     });
   }
