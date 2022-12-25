@@ -329,9 +329,11 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
       }
 
       const attr = (() => {
+        let inQuote = false;
         let arr: string[] = [];
         for (; sidx >= 0; --sidx) {
-          if (text[sidx] === "'" || text[sidx] === '"') {
+          if (!inQuote && (text[sidx] === "'" || text[sidx] === '"')) {
+            inQuote = true;
             --sidx;
             for (; sidx >= 0 && /\s/.test(text[sidx]); --sidx);
             if (sidx > 0 && text[sidx] === '=') {

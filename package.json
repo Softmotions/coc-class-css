@@ -1,6 +1,6 @@
 {
   "name": "coc-class-css",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CSS class completions in html markup everywhere",
   "main": "lib/index.js",
   "repository": "https://github.com/Softmotions/coc-class-css.git",
