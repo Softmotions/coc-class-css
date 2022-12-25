@@ -17,7 +17,7 @@ import {
   ProviderResult,
   TextDocument,
   Uri,
-  workspace
+  workspace,
 } from 'coc.nvim';
 
 import { findUp } from 'find-up';
@@ -121,7 +121,7 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     }
 
     if (cfg.maxResults < 1) {
-      cfg.maxResults = workspace.getConfiguration(ExtensionName, uri.toString()).get<number>('maxResults', 20);
+      cfg.maxResults = workspace.getConfiguration(ExtensionName, uri.toString()).get<number>('maxResults', 1000);
     }
 
     workspace
@@ -326,10 +326,10 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
 
       const word = text.substring(sidx, position.character);
       if (word.length == 0) {
-        return resolve(results);
+        --sidx;
       }
 
-      const attr = (function () {
+      const attr = (() => {
         let arr: string[] = [];
         for (; sidx >= 0; --sidx) {
           if (text[sidx] === "'" || text[sidx] === '"') {
@@ -348,7 +348,7 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
         return arr.join('');
       })();
 
-      if (attr === '' || !this.cfg.classAttributes.has(attr)) {
+      if (!this.cfg.classAttributes.has(attr)) {
         return resolve(results);
       }
 

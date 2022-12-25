@@ -19,7 +19,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
   }
 
   context.subscriptions.push(
-    languages.registerCompletionItemProvider('coc-class-css', 'CCC', enabledLanguages, provider),
+    languages.registerCompletionItemProvider('coc-class-css', 'CCC', enabledLanguages, provider, ["'", '"', ' ']),
     provider
   );
 }
