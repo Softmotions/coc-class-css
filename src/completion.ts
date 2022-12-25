@@ -17,7 +17,7 @@ import {
   ProviderResult,
   TextDocument,
   Uri,
-  workspace,
+  workspace
 } from 'coc.nvim';
 
 import { findUp } from 'find-up';
@@ -255,11 +255,13 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
           .trim()
           .split('\n')
           .filter((l) => !/^\s*$/.test(l));
+
         // hack:
         if (lines.length > 1) {
           lines[0] = lines[0].trim();
           lines[lines.length - 1] = lines[lines.length - 1].trim();
         }
+
         n.selectors
           .filter((s) => s[0] === '.')
           .forEach((s) => {
@@ -272,6 +274,7 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
           });
       }
     });
+
     selectors.forEach((s) => {
       trie.wordAdd(s.token, s);
     });
@@ -288,6 +291,7 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     if (css == undefined) {
       return;
     }
+
     return postcss([
       postcssSimpleVars(),
       postcssAtRulesVars(),
