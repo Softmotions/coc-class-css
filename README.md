@@ -3,9 +3,9 @@
 `coc-class-css` [CoC](https://github.com/neoclide/coc.nvim) is an autocompletion plugin of CSS/PostCSS/SCSS
 classes in HTML like markup.
 
-All you need is to configure root css files to start from.
-
 ![screenshot](./images/screen1.png)
+
+All you need is to configure root css files to start from.
 
 ## Requirements
 
