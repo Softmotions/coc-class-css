@@ -41,7 +41,7 @@ Where `cocRoots` specifies css files to process. Local `@import` directives are 
 * `coc-class-css.classAttributes` List of `class`  like HTML attributes to trigger autocompletion. Default: `["class"]`
    Note: `tailwindCSS.classAttributes` is also taken into account.
 
-## Notes
+## Tips
 
 For correct autocompletion for keywords with dashes it also recommended to setup `b:coc_additional_keywords`
 
