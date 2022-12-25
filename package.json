@@ -56,14 +56,15 @@
     "clean": "rimraf lib",
     "watch": "node esbuild.js --watch",
     "build": "node esbuild.js",
-    "prepare": "node esbuild.js"
+    "prepare": "node esbuild.js",
+    "release": "NODE_ENV=production node esbuild.js"
   },
 
   "devDependencies": {
     "@types/node": "18.x",
     "@typescript-eslint/eslint-plugin": "^5.46.1",
     "@typescript-eslint/parser": "^5.46.1",
-    "coc.nvim": "^0.0.83-next.9",
+    "coc.nvim": "^0.0.80",
     "esbuild": "^0.16.9",
     "eslint": "^8.30.0",
     "find-up": "^6.3.0",

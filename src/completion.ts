@@ -17,7 +17,7 @@ import {
   ProviderResult,
   TextDocument,
   Uri,
-  workspace
+  workspace,
 } from 'coc.nvim';
 
 import { findUp } from 'find-up';
@@ -108,8 +108,8 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     val = await findUp(`.${ExtensionName}.json`, { stopAt: workspace.root, cwd });
     if (val) {
       const json = await this.jsonFileGet(val);
-      (json[`${ExtensionName}.cssRoots`] || []).forEach((r) => cfg.cssRoots.add(fspath.resolve(cfg.rootDir, r)));
-      (json[`${ExtensionName}.classAttributes`] || []).forEach((r) => cfg.classAttributes.add(r));
+      (json[`cssRoots`] || []).forEach((r) => cfg.cssRoots.add(fspath.resolve(cfg.rootDir, r)));
+      (json[`classAttributes`] || []).forEach((r) => cfg.classAttributes.add(r));
       cfg.maxResults = parseInt(json[`${ExtensionName}.maxResults`]) || 0;
     }
 
@@ -174,16 +174,8 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
   }
 
   async rootsImport(paths: string[]) {
-    return Promise.all(
-      paths
-        .map((v) => this.pathResolve(v))
-        .filter((v) => v !== undefined)
-        .map((v) => {
-          const path = fspath.join(this.cfg.rootDir, v!);
-          this.roots.add(path);
-          return this.updateRoot(path);
-        })
-    );
+    paths.map((v) => this.pathResolve(v)).forEach((v) => v && this.roots.add(fspath.join(this.cfg.rootDir, v)));
+    return this.updateRoots();
   }
 
   onFilesChanged() {
@@ -235,7 +227,12 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
   }
 
   async updateRoots() {
-    return Promise.all([...this.roots].map((p) => this.updateRoot(p)));
+    const trie = new TrieNode<CLSlot>();
+    return Promise.all([...this.roots].map((p) => this.updateRoot(p, trie))).then(() => {
+      if (trie.children.size) {
+        this.trie = trie;
+      }
+    });
   }
 
   async processCSSResult(result: Result, pathRelative: string, trie: TrieNode<CLSlot>) {
@@ -280,9 +277,8 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     });
   }
 
-  async updateRoot(path: string) {
+  async updateRoot(path: string, trie: TrieNode<CLSlot>) {
     const { rootDir } = this.cfg;
-    const trie = new TrieNode<CLSlot>();
     const pathRelative = fspath.relative(rootDir, path);
     const css = await this.fileLoad(path).catch((e) => {
       this.log.warn(`Failed to read: ${path} `, e);
@@ -300,7 +296,6 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     ])
       .process(css, { from: path, parser: postcssSafeParser })
       .then((res) => this.processCSSResult(res, pathRelative, trie))
-      .then(() => (this.trie = trie))
       .catch((e) => {
         this.log.warn(`Failed to process: ${path}`, e);
       });
