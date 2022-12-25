@@ -9,7 +9,7 @@ All you need is to configure root css files to start from.
 
 ## Requirements
 
-* Coc vim plugin `v0.0.80+`
+* CoC vim plugin `v0.0.80+`
 * [Watchman](https://facebook.github.io/watchman/) installed in order to update completion index when files changed.
 
 ## Installation
