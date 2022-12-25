@@ -1,4 +1,4 @@
-# Vim/Neovim CoC CSS class completion plugin
+# Vim/Neovim CoC CSS class selectors completion plugin
 
 `coc-class-css` [CoC](https://github.com/neoclide/coc.nvim) is an autocompletion plugin of CSS/PostCSS/SCSS
 classes in HTML like markup.
