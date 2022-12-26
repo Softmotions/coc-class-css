@@ -110,7 +110,7 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
       const json = await this.jsonFileGet(val);
       (json[`cssRoots`] || []).forEach((r) => cfg.cssRoots.add(fspath.resolve(cfg.rootDir, r)));
       (json[`classAttributes`] || []).forEach((r) => cfg.classAttributes.add(r));
-      cfg.maxResults = parseInt(json[`${ExtensionName}.maxResults`]) || 0;
+      cfg.maxResults = parseInt(json[`maxResults`]) || 0;
     }
 
     if (cfg.cssRoots.size == 0) {
@@ -329,11 +329,11 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
       }
 
       const attr = (() => {
-        let inQuote = false;
+        let outQuotes = false;
         let arr: string[] = [];
         for (; sidx >= 0; --sidx) {
-          if (!inQuote && (text[sidx] === "'" || text[sidx] === '"')) {
-            inQuote = true;
+          if (!outQuotes && (text[sidx] === "'" || text[sidx] === '"')) {
+            outQuotes = true;
             --sidx;
             for (; sidx >= 0 && /\s/.test(text[sidx]); --sidx);
             if (sidx > 0 && text[sidx] === '=') {
@@ -349,7 +349,7 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
         return arr.join('');
       })();
 
-      if (!this.cfg.classAttributes.has(attr)) {
+      if (attr === '' || !this.cfg.classAttributes.has(attr)) {
         return resolve(results);
       }
 
