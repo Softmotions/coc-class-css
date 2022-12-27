@@ -259,18 +259,16 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
           lines[lines.length - 1] = lines[lines.length - 1].trim();
         }
 
+        const source = lines.join('\n');
         n.selectors
-          .map((s) => {
-            const idx = s.indexOf('.');
-            return idx !== -1 ? s.substring(idx + 1) : undefined;
-          })
+          .flatMap((s) => s.split(/(?=\.)/))
           .forEach((s) => {
-            if (s) {
+            if (s[0] === '.') {
               const idx = s.indexOf(' ');
               selectors.add({
-                token: idx == -1 ? s : s.substring(0, idx),
+                token: idx == -1 ? s.substring(1) : s.substring(1, idx),
                 pathRelative,
-                source: lines.join('\n'),
+                source,
               });
             }
           });
