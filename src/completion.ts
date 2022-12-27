@@ -260,13 +260,18 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
         }
 
         n.selectors
-          .filter((s) => s[0] === '.')
+          .map((s) => {
+            const idx = s.indexOf('.');
+            return idx !== -1 ? s.substring(idx + 1) : undefined;
+          })
           .forEach((s) => {
-            const idx = s.indexOf(' ');
-            if (idx !== -1) {
-              selectors.add({ token: s.substring(1, idx), pathRelative, source: lines.join('\n') });
-            } else {
-              selectors.add({ token: s.substring(1), pathRelative, source: lines.join('\n') });
+            if (s) {
+              const idx = s.indexOf(' ');
+              selectors.add({
+                token: idx == -1 ? s : s.substring(0, idx),
+                pathRelative,
+                source: lines.join('\n'),
+              });
             }
           });
       }
