@@ -265,11 +265,14 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
           .forEach((s) => {
             if (s[0] === '.') {
               const idx = s.indexOf(' ');
-              selectors.add({
-                token: idx == -1 ? s.substring(1) : s.substring(1, idx),
-                pathRelative,
-                source,
-              });
+              const token = idx == -1 ? s.substring(1) : s.substring(1, idx);
+              if (/^[a-zA-Z0-9-_]+$/.test(token)) {
+                selectors.add({
+                  token,
+                  pathRelative,
+                  source,
+                });
+              }
             }
           });
       }
