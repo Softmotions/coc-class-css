@@ -1,6 +1,6 @@
 {
   "name": "coc-class-css",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "CSS class completions in html markup everywhere",
   "main": "lib/index.js",
   "repository": "https://github.com/Softmotions/coc-class-css.git",
@@ -58,7 +58,6 @@
     "prepare": "NODE_ENV=production node esbuild.js",
     "build": "NODE_ENV=production node esbuild.js"
   },
-
   "devDependencies": {
     "@types/node": "18.x",
     "@typescript-eslint/eslint-plugin": "^5.46.1",
@@ -72,6 +71,7 @@
     "postcss-at-rules-variables": "^0.3.0",
     "postcss-import": "^15.1.0",
     "postcss-nested": "^6.0.0",
+    "postcss-nesting": "^10.2.0",
     "postcss-safe-parser": "^6.0.0",
     "postcss-scss": "^4.0.6",
     "postcss-simple-vars": "^7.0.1",

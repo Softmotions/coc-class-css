@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
-import fspath, { dirname } from 'node:path';
+import fspath from 'node:path';
+import resolve from 'resolve';
 import { nextTick } from 'node:process';
 
 import {
@@ -26,7 +27,7 @@ import postcssAtRulesVars from 'postcss-at-rules-variables';
 import postcssImport from 'postcss-import';
 import dataUrl from 'postcss-import/lib/data-url.js';
 import loadContent from 'postcss-import/lib/load-content.js';
-import postcssNested from 'postcss-nested';
+import postcssNesting from 'postcss-nesting';
 import postcssSafeParser from 'postcss-safe-parser';
 import postcssSimpleVars from 'postcss-simple-vars';
 
@@ -98,7 +99,7 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
       maxResults: 0,
     };
 
-    const cwd = dirname(uri.path);
+    const cwd = fspath.dirname(uri.path);
     let val = await findUp('package.json', { stopAt: workspace.root, cwd });
     if (val) {
       val = fspath.dirname(val);
@@ -216,6 +217,54 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     this.watched.set(path, watcher);
   }
 
+  idResolve(id, base, options) {
+    function resolveModule(id, opts) {
+      return new Promise((res, rej) => {
+        resolve(id, opts, (err, path) => (err ? rej(err) : res(path)));
+      });
+    }
+    const moduleDirectories = ['web_modules', 'node_modules'];
+    const paths = options.path;
+    const resolveOpts = {
+      basedir: base,
+      moduleDirectory: moduleDirectories.concat(options.addModulesDirectories),
+      paths,
+      extensions: ['.css', '.scss', '.postcss'],
+      packageFilter: function processPackage(pkg) {
+        if (pkg.style) pkg.main = pkg.style;
+        else if (!pkg.main || !/\.css$/.test(pkg.main)) pkg.main = 'index.css';
+        return pkg;
+      },
+      preserveSymlinks: false,
+    };
+    const modules: string[] = [];
+    if (!id.startsWith('./')) {
+      modules.push(`./${id}`);
+    }
+    const pdir = fspath.dirname(id);
+    const pbase = fspath.basename(id);
+    if (!pbase.startsWith('_') && fspath.extname(pbase) === '') {
+      const path = fspath.join(pdir, `_${pbase}`);
+      if (!path.startsWith('./')) {
+        modules.push(`./${path}`);
+      }
+      modules.push(path);
+    }
+    modules.push(id);
+    return Promise.any(modules.map((p) => resolveModule(p, resolveOpts))).catch(() => {
+      if (paths.indexOf(base) === -1) {
+        paths.unshift(base);
+      }
+      throw new Error(
+        `Failed to find any of '${modules.join(', ')}'
+  in [
+    ${paths.join(',\n        ')}
+  ]
+`
+      );
+    });
+  }
+
   fileLoad(path: string) {
     if (dataUrl.isValid()) {
       return loadContent(path);
@@ -295,10 +344,10 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     }
 
     return postcss([
-      postcssSimpleVars(),
+      postcssSimpleVars({ silent: true }),
       postcssAtRulesVars(),
-      postcssNested(),
-      postcssImport({ root: rootDir, load: this.fileLoad.bind(this) }),
+      postcssNesting(),
+      postcssImport({ root: rootDir, load: this.fileLoad.bind(this), resolve: this.idResolve.bind(this) }),
     ])
       .process(css, { from: path, parser: postcssSafeParser })
       .then((res) => this.processCSSResult(res, pathRelative, trie))

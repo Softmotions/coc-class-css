@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@csstools/selector-specificity@^2.0.0":
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/@csstools/selector-specificity/-/selector-specificity-2.0.2.tgz#1bfafe4b7ed0f3e4105837e056e0a89b108ebe36"
+  integrity sha512-IkpVW/ehM1hWKln4fCA3NzJU8KwD+kIOvPZA4cqxoJHtE21CCzjyp+Kxbu0i5I4tBNOlXPL9mjwnWlL0VEG4Fg==
+
 "@esbuild/android-arm64@0.16.9":
   version "0.16.9"
   resolved "https://registry.yarnpkg.com/@esbuild/android-arm64/-/android-arm64-0.16.9.tgz#474da719599f99d820ec010c92846a4f685fa28a"
@@ -340,10 +345,10 @@ chalk@^4.0.0:
     ansi-styles "^4.1.0"
     supports-color "^7.1.0"
 
-coc.nvim@^0.0.83-next.9:
-  version "0.0.83-next.9"
-  resolved "https://registry.yarnpkg.com/coc.nvim/-/coc.nvim-0.0.83-next.9.tgz#8f7de8c98fa37019286852d3b7229fb91517ab83"
-  integrity sha512-ek5+EgA9N92/6Wt07TAYpavmBgXZto4Dmwmm56oyBl/w4wy3Tod7LfpCp4k9M4xCxhxPtrflIcxvhdDUPIeMuw==
+coc.nvim@^0.0.80:
+  version "0.0.80"
+  resolved "https://registry.yarnpkg.com/coc.nvim/-/coc.nvim-0.0.80.tgz#785145c382660db03f517f9b497900d95cbd0e4f"
+  integrity sha512-/3vTcnofoAYMrdENrlQmADTzfXX4+PZ0fiM10a39UA37dTR2dpIGi9O469kcIksuunLjToqWG8S45AGx/9wV7g==
 
 color-convert@^2.0.1:
   version "2.0.1"
@@ -1012,6 +1017,14 @@ postcss-nested@^6.0.0:
   resolved "https://registry.yarnpkg.com/postcss-nested/-/postcss-nested-6.0.0.tgz#1572f1984736578f360cffc7eb7dca69e30d1735"
   integrity sha512-0DkamqrPcmkBDsLn+vQDIrtkSbNkv5AD/M322ySo9kqFkCIYklym2xEmWkwo+Y3/qZo34tzEPNUw4y7yMCdv5w==
   dependencies:
+    postcss-selector-parser "^6.0.10"
+
+postcss-nesting@^10.2.0:
+  version "10.2.0"
+  resolved "https://registry.yarnpkg.com/postcss-nesting/-/postcss-nesting-10.2.0.tgz#0b12ce0db8edfd2d8ae0aaf86427370b898890be"
+  integrity sha512-EwMkYchxiDiKUhlJGzWsD9b2zvq/r2SSubcRrgP+jujMXFzqvANLt16lJANC+5uZ6hjI7lpRmI6O8JIl+8l1KA==
+  dependencies:
+    "@csstools/selector-specificity" "^2.0.0"
     postcss-selector-parser "^6.0.10"
 
 postcss-safe-parser@^6.0.0:
