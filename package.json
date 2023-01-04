@@ -1,6 +1,6 @@
 {
   "name": "coc-class-css",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "CSS class completions in html markup everywhere",
   "main": "lib/index.js",
   "repository": "https://github.com/Softmotions/coc-class-css.git",
@@ -16,7 +16,7 @@
     "html"
   ],
   "engines": {
-    "coc": "^0.0.80"
+    "coc": "^0.0.82"
   },
   "activationEvents": [
     "*"
@@ -59,12 +59,12 @@
     "build": "NODE_ENV=production node esbuild.js"
   },
   "devDependencies": {
-    "@types/node": "18.x",
-    "@typescript-eslint/eslint-plugin": "^5.46.1",
-    "@typescript-eslint/parser": "^5.46.1",
-    "coc.nvim": "^0.0.80",
-    "esbuild": "^0.16.9",
-    "eslint": "^8.30.0",
+    "@types/node": "18.11.18",
+    "@typescript-eslint/eslint-plugin": "^5.48.0",
+    "@typescript-eslint/parser": "^5.48.0",
+    "coc.nvim": "^0.0.83-next.9",
+    "esbuild": "^0.16.13",
+    "eslint": "^8.31.0",
     "find-up": "^6.3.0",
     "node-fetch": "^3.3.0",
     "postcss": "^8.4.20",

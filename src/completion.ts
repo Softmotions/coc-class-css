@@ -35,12 +35,19 @@ import { ExtensionName } from './constants';
 import { TrieNode } from './trie';
 
 /**
+ * Source code of completion token.
+ */
+interface CLSource {
+  path: string;
+  source: string;
+}
+
+/**
  * CSS class node
  */
 interface CLSlot {
   token: string; /// CSS class
-  pathRelative: string;
-  source: string;
+  sources: CLSource[]; /// Source code of completion token
 }
 
 interface Config {
@@ -284,15 +291,15 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
     });
   }
 
-  async processCSSResult(result: Result, pathRelative: string, trie: TrieNode<CLSlot>) {
-    const selectors = new Set<CLSlot>();
+  async processCSSResult(result: Result, path: string, trie: TrieNode<CLSlot>) {
+    const selectors = new Map<string, CLSlot>();
     result.root.walk((n) => {
       if (n.type === 'rule' && n.selector) {
         let file = n?.source?.input?.file;
         if (file) {
-          pathRelative = fspath.relative(this.cfg.rootDir, file);
-          if (pathRelative.startsWith('node_modules/')) {
-            pathRelative = pathRelative.substring('node_modules/'.length);
+          path = fspath.relative(this.cfg.rootDir, file);
+          if (path.startsWith('node_modules/')) {
+            path = path.substring('node_modules/'.length);
           }
         }
 
@@ -316,11 +323,16 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
               const idx = s.indexOf(' ');
               const token = idx == -1 ? s.substring(1) : s.substring(1, idx);
               if (/^[a-zA-Z0-9-_]+$/.test(token)) {
-                selectors.add({
-                  token,
-                  pathRelative,
-                  source,
-                });
+                const sources = [{ source, path }];
+                const slot = selectors.get(token);
+                if (slot) {
+                  slot.sources.push(...sources);
+                } else {
+                  selectors.set(token, {
+                    token,
+                    sources,
+                  });
+                }
               }
             }
           });
@@ -409,19 +421,25 @@ export class CSSClassCompletionProvider implements CompletionItemProvider, Dispo
       }
 
       for (const s of this.trie.prefixFind(word)) {
-        results.push({
-          label: s.token,
-          kind: CompletionItemKind.Variable,
-          detail: s.pathRelative,
-          documentation: {
-            kind: 'markdown',
-            value: ['```css', s.source, '```'].join('\n'),
-          },
-        });
+        for (const source of s.sources) {
+          results.push({
+            label: s.token,
+            kind: CompletionItemKind.Variable,
+            detail: source.path,
+            documentation: {
+              kind: 'markdown',
+              value: ['```css', source.source, '```'].join('\n'),
+            },
+          });
+          if (results.length >= this.cfg.maxResults) {
+            break;
+          }
+        }
         if (results.length >= this.cfg.maxResults) {
           break;
         }
       }
+
       return resolve(results);
     });
   }
