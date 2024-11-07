@@ -36,7 +36,7 @@ Where `cocRoots` specifies css files to process. Local `@import` directives are 
 ### CoC configuration options.
 
 * `coc-class-css.languages` List of file types for which this plugin will be activated.
-   Default: `["html", "svelte", "vue"]`
+   Default: `["html"]`
 * `coc-class-css.cssRoots` Initial set of css files.
 * `coc-class-css.classAttributes` List of `class`  like HTML attributes to trigger autocompletion. Default: `["class"]`
    Note: `tailwindCSS.classAttributes` is also taken into account.
