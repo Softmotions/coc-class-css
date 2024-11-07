@@ -8,7 +8,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
     return;
   }
 
-  const enabledLanguages = cfg.get<string[]>('languages', ['html', 'svelte', 'vue']);
+  const enabledLanguages = cfg.get<string[]>('languages', ['html', 'svelte', 'vue', 'javascriptreact']);
   context.logger.info(`Activating ${ExtensionName} for ${enabledLanguages.join(',')}`);
 
   const provider = new CSSClassCompletionProvider(context);

@@ -1,6 +1,6 @@
 {
   "name": "coc-class-css",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "CSS class completions in html markup everywhere",
   "main": "lib/index.js",
   "repository": "https://github.com/Softmotions/coc-class-css.git",
@@ -32,12 +32,15 @@
           "default": true,
           "description": "Enable coc-class-css extension"
         },
-        "coc-class-css.enabledLanguages": {
+        "coc-class-css.languages": {
           "type": "array",
           "scope": "application",
           "description": "List of languages where css class completion enabled",
           "default": [
-            "html"
+            "html",
+            "svelte",
+            "vue",
+            "javascriptreact"
           ]
         },
         "coc-class-css.cssRoots": {
@@ -59,25 +62,25 @@
     "build": "NODE_ENV=production node esbuild.js"
   },
   "devDependencies": {
-    "@types/node": "18.11.18",
-    "@typescript-eslint/eslint-plugin": "^5.48.0",
-    "@typescript-eslint/parser": "^5.48.0",
+    "@types/node": "22.9.0",
+    "@typescript-eslint/eslint-plugin": "^8.13.0",
+    "@typescript-eslint/parser": "^8.13.0",
     "coc.nvim": "^0.0.83-next.9",
-    "esbuild": "^0.16.13",
-    "eslint": "^8.31.0",
-    "find-up": "^6.3.0",
-    "node-fetch": "^3.3.0",
-    "postcss": "^8.4.20",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.14.0",
+    "find-up": "^7.0.0",
+    "node-fetch": "^3.3.2",
+    "postcss": "^8.4.47",
     "postcss-at-rules-variables": "^0.3.0",
-    "postcss-import": "^15.1.0",
-    "postcss-nested": "^6.0.0",
-    "postcss-nesting": "^10.2.0",
-    "postcss-safe-parser": "^6.0.0",
-    "postcss-scss": "^4.0.6",
+    "postcss-import": "^16.1.0",
+    "postcss-nested": "^7.0.2",
+    "postcss-nesting": "^13.0.1",
+    "postcss-safe-parser": "^7.0.1",
+    "postcss-scss": "^4.0.9",
     "postcss-simple-vars": "^7.0.1",
-    "prettier": "^2.8.1",
-    "rimraf": "^3.0.2",
-    "tslib": "^2.4.1",
-    "typescript": "^4.9.4"
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
+    "tslib": "^2.8.1",
+    "typescript": "^5.6.3"
   }
 }
